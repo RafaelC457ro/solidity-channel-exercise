@@ -1,0 +1,32 @@
+{
+  "name": "hardhat-project",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
+    "@nomiclabs/hardhat-solhint": "^3.0.1",
+    "@typechain/ethers-v5": "^10.2.1",
+    "@typechain/hardhat": "^6.1.6",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.14.0",
+    "hardhat-deploy": "^0.11.28",
+    "hardhat-gas-reporter": "^1.0.9",
+    "prettier": "^2.8.8",
+    "prettier-plugin-solidity": "^1.1.3",
+    "solidity-coverage": "^0.8.2",
+    "typechain": "^8.1.1"
+  },
+  "scripts": {
+    "format-contract": "prettier --write 'contracts/**/*.sol'",
+    "format-code": "npx prettier --write .",
+    "format": "npm run format-contract && npm run format-code",
+    "test": "npx hardhat test",
+    "coverage": "npx hardhat coverage",
+    "lint": "npx solhint 'contracts/**/*.sol'",
+    "lint-fix": "npx solhint -c ./.solhint.json 'contracts/**/*.sol' --fix"
+  },
+  "overrides": {
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13"
+  }
+}
