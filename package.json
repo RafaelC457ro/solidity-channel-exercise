@@ -42,5 +42,8 @@
   },
   "comments": {
     "overrides": "This is a workaround to fix the hardhat-ethers conflit with hardhat-deploy."
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.0"
   }
 }
