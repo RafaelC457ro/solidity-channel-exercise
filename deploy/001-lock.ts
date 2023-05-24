@@ -8,12 +8,10 @@ const deployment: DeployFunction = async function ({
 }: HardhatRuntimeEnvironment) {
   const { deploy, log } = deployments;
   const { deployer } = await getNamedAccounts();
+
   //   const chainId = network.config.chainId;
-
   //   const isLocalTest = chainId === 31337;
-
   //   if (isLocalTest) {
-
   //   }
 
   const currentTimestampInSeconds = Math.round(Date.now() / 1000);
