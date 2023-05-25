@@ -30,7 +30,7 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
      * @param _id ERC1155 token id
      */
     function initialize(
-        address _sender,
+        address payable _sender,
         address _receiver,
         uint256 _amount,
         uint256 _expiration,
@@ -57,7 +57,7 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
         require(_verify(_amount, _signature), "PaymentChannel: invalid signature");
         token.safeTransferFrom(address(this), receiver, id, _amount, "0x");
         // transfer the remaining balance to the sender
-        token.safeTransferFrom(address(this), sender, id, token.balanceOf(this, id), "0x");
+        token.safeTransferFrom(address(this), sender, id, token.balanceOf(address(this), id), "0x");
         emit PaymentClosed(_amount);
         selfdestruct(sender);
     }
@@ -69,7 +69,7 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
         require(msg.sender == sender, "PaymentChannel: only sender can cancel");
         // check if the payment is expired
         require(block.timestamp >= expiration, "PaymentChannel: payment is not expired");
-        token.safeTransferFrom(address(this), sender, id, token.balanceOf(this, id), "0x");
+        token.safeTransferFrom(address(this), sender, id, token.balanceOf(address(this), id), "0x");
         emit PaymentCanceled();
         selfdestruct(sender);
     }
@@ -97,9 +97,9 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
     /**
      * @dev Function to verify the signature
      */
-    function _verify(uint256 amount, bytes memory signature) private returns (bools) {
-        bytes32 digest = EIP712._hashTypedDataV4(keccak256(abi.encode(keccak256("Payment(uint256 amount)"), amount)));
-        address signer = ECDSA.recover(digest, signature);
+    function _verify(uint256 _amount, bytes memory _signature) private returns (bool) {
+        bytes32 digest = EIP712._hashTypedDataV4(keccak256(abi.encode(keccak256("Payment(uint256 amount)"), _amount)));
+        address signer = ECDSA.recover(digest, _signature);
         return signer == sender;
     }
 }

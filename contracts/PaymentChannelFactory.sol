@@ -24,7 +24,7 @@ contract PaymentChannelFactory {
      * @return paymentChannel Address of the new payment channel
      */
     function createPaymentChannel(
-        address _sender,
+        address payable _sender,
         address _receiver,
         uint256 _amount,
         uint256 _expiration,
