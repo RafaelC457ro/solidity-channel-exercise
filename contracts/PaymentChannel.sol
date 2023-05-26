@@ -97,7 +97,7 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
     /**
      * @dev Function to verify the signature
      */
-    function _verify(uint256 _amount, bytes memory _signature) private returns (bool) {
+    function _verify(uint256 _amount, bytes memory _signature) private view returns (bool) {
         bytes32 digest = EIP712._hashTypedDataV4(keccak256(abi.encode(keccak256("Payment(uint256 amount)"), _amount)));
         address signer = ECDSA.recover(digest, _signature);
         return signer == sender;

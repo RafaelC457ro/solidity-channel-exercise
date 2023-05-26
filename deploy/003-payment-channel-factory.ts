@@ -8,10 +8,8 @@ const deployment: DeployFunction = async function ({
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  //  payment channel implementation
   const paymentChannelImplementation = await deployments.get("PaymentChannel");
 
-  // deploy PaymentChannel
   await deploy("PaymentChannelFactory", {
     from: deployer,
     args: [paymentChannelImplementation.address],
@@ -19,6 +17,6 @@ const deployment: DeployFunction = async function ({
   });
 };
 
-deployment.tags = ["all", "mock-token"];
+deployment.tags = ["all", "payment-channel-factory"];
 
 export default deployment;

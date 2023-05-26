@@ -9,7 +9,6 @@ const deployment: DeployFunction = async function ({
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  // deploy PaymentChannel
   await deploy("PaymentChannel", {
     from: deployer,
     args: [],
@@ -17,6 +16,6 @@ const deployment: DeployFunction = async function ({
   });
 };
 
-deployment.tags = ["all", "mock-token"];
+deployment.tags = ["all", "payment-channel-implementation"];
 
 export default deployment;

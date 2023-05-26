@@ -12,7 +12,6 @@ const deployment: DeployFunction = async function ({
   const chainId = network.config.chainId;
   const isLocalTest = chainId === 31337;
   if (isLocalTest) {
-    // deploy mock token
     await deploy("MockToken", {
       from: deployer,
       args: [],
