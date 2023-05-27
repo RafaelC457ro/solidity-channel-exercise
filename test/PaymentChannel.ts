@@ -6,10 +6,11 @@ import {
   PaymentChannel,
   PaymentChannelFactory,
 } from "../typechain-types";
+import { createPaymentSignature } from "../utils/createPaymentSignature";
 
 describe("PaymentChannel", () => {
   async function deployPaymentChannelFixture() {
-    const { sender, receiver } = await ethers.getNamedSigners();
+    const { deployer, sender, receiver } = await ethers.getNamedSigners();
     const oneHour = 60 * 60;
 
     const expiration = (await time.latest()) + oneHour;
@@ -17,6 +18,7 @@ describe("PaymentChannel", () => {
 
     // load MockToken
     const MockToken: MockToken = await ethers.getContract("MockToken");
+    // call onERC1155BatchReceived
 
     // mint tokens to sender
     const senderTokenBalance = 1000;
@@ -28,7 +30,6 @@ describe("PaymentChannel", () => {
     const tx = await PaymentChannelFactory.createPaymentChannel(
       sender.address,
       receiver.address,
-      senderTokenBalance,
       expiration,
       MockToken.address,
       0
@@ -57,6 +58,7 @@ describe("PaymentChannel", () => {
       receiver,
       MockToken,
       expiration,
+      deployer,
     };
   }
 
@@ -80,28 +82,218 @@ describe("PaymentChannel", () => {
     );
 
     const amount = 1000;
-    const domain = {
-      name: "PaymentChannel",
-      version: "1.0.0",
-      chainId: 31337,
-      verifyingContract: PaymentChannel.address,
-    } as const;
+    const signature = await createPaymentSignature(sender, channel, amount);
 
-    const types = {
-      Payment: [{ name: "amount", type: "uint256" }],
-    };
-
-    const value = {
-      amount,
-    } as const;
-
-    const signature = await sender._signTypedData(domain, types, value);
-    await PaymentChannel.connect(receiver).close(amount, signature);
+    expect(PaymentChannel.connect(receiver).close(amount, signature))
+      .to.emit(PaymentChannel, "PaymentClosed")
+      .withArgs(amount);
 
     const receiverBalanceAfter = await MockToken.balanceOf(receiver.address, 0);
     const contractBalance = await MockToken.balanceOf(channel, 0);
 
     expect(receiverBalanceAfter).to.equal(receiverBalanceBefore.add(amount));
     expect(contractBalance.toString()).to.equal("0");
+  });
+
+  it("should not close a channel with an invalid signature", async () => {
+    const { channel, deployer, receiver, MockToken } = await loadFixture(
+      deployPaymentChannelFixture
+    );
+
+    const receiverBalanceBefore = await MockToken.balanceOf(
+      receiver.address,
+      0
+    );
+    const contractBalanceBefore = await MockToken.balanceOf(channel, 0);
+
+    expect(receiverBalanceBefore.toString()).to.equal("0");
+    expect(contractBalanceBefore.toString()).to.equal("1000");
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    const amount = 1000;
+    const signature = await createPaymentSignature(deployer, channel, amount);
+
+    await expect(
+      PaymentChannel.connect(receiver).close(amount, signature)
+    ).to.be.revertedWith("PaymentChannel: invalid signature");
+
+    const receiverBalanceAfter = await MockToken.balanceOf(receiver.address, 0);
+    const contractBalance = await MockToken.balanceOf(channel, 0);
+
+    expect(receiverBalanceAfter.toString()).to.equal("0");
+    expect(contractBalance.toString()).to.equal("1000");
+  });
+
+  it("should not close a channel with an invalid amount", async () => {
+    const { channel, sender, receiver, MockToken } = await loadFixture(
+      deployPaymentChannelFixture
+    );
+
+    const receiverBalanceBefore = await MockToken.balanceOf(
+      receiver.address,
+      0
+    );
+    const contractBalanceBefore = await MockToken.balanceOf(channel, 0);
+
+    expect(receiverBalanceBefore.toString()).to.equal("0");
+    expect(contractBalanceBefore.toString()).to.equal("1000");
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    const amount = 999;
+    const signature = await createPaymentSignature(sender, channel, 1000);
+
+    await expect(
+      PaymentChannel.connect(receiver).close(amount, signature)
+    ).to.be.revertedWith("PaymentChannel: invalid signature");
+
+    const receiverBalanceAfter = await MockToken.balanceOf(receiver.address, 0);
+    const contractBalance = await MockToken.balanceOf(channel, 0);
+
+    expect(receiverBalanceAfter.toString()).to.equal("0");
+    expect(contractBalance.toString()).to.equal("1000");
+  });
+
+  it("should not close a channel after expiration", async () => {
+    const { channel, sender, receiver, MockToken, expiration } =
+      await loadFixture(deployPaymentChannelFixture);
+
+    const receiverBalanceBefore = await MockToken.balanceOf(
+      receiver.address,
+      0
+    );
+    const contractBalanceBefore = await MockToken.balanceOf(channel, 0);
+
+    expect(receiverBalanceBefore.toString()).to.equal("0");
+    expect(contractBalanceBefore.toString()).to.equal("1000");
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    const amount = 1000;
+    const signature = await createPaymentSignature(sender, channel, amount);
+
+    await time.increaseTo(expiration + 1);
+
+    await expect(
+      PaymentChannel.connect(receiver).close(amount, signature)
+    ).to.be.revertedWith("PaymentChannel: payment is expired");
+
+    const receiverBalanceAfter = await MockToken.balanceOf(receiver.address, 0);
+    const contractBalance = await MockToken.balanceOf(channel, 0);
+
+    expect(receiverBalanceAfter.toString()).to.equal("0");
+    expect(contractBalance.toString()).to.equal("1000");
+  });
+
+  it("should cancel the payment after expiration", async () => {
+    const { channel, sender, MockToken, expiration } = await loadFixture(
+      deployPaymentChannelFixture
+    );
+
+    const senderBalanceBefore = await MockToken.balanceOf(sender.address, 0);
+    const contractBalanceBefore = await MockToken.balanceOf(channel, 0);
+
+    expect(contractBalanceBefore.toString()).to.equal("1000");
+    expect(senderBalanceBefore.toString()).to.equal("0");
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    await time.increaseTo(expiration + 1000);
+
+    await expect(PaymentChannel.connect(sender).cancel()).to.emit(
+      PaymentChannel,
+      "PaymentCanceled"
+    );
+
+    const senderBalanceAfter = await MockToken.balanceOf(sender.address, 0);
+    const contractBalanceAfter = await MockToken.balanceOf(channel, 0);
+
+    expect(senderBalanceAfter.toString()).to.equal("1000");
+    expect(contractBalanceAfter.toString()).to.equal("0");
+  });
+
+  it("should not cancel the payment before expiration", async () => {
+    const { channel, sender } = await loadFixture(deployPaymentChannelFixture);
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    await expect(PaymentChannel.connect(sender).cancel()).to.be.revertedWith(
+      "PaymentChannel: payment is not expired"
+    );
+  });
+
+  // only the sender can cancel the payment
+  it("should not cancel the payment by a third party", async () => {
+    const { channel, receiver, expiration } = await loadFixture(
+      deployPaymentChannelFixture
+    );
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    await time.increaseTo(expiration + 1000);
+
+    await expect(PaymentChannel.connect(receiver).cancel()).to.be.revertedWith(
+      "PaymentChannel: only sender can cancel"
+    );
+  });
+
+  // only the receiver can close the payment
+  it("should not close the payment by a third party", async () => {
+    const { channel, sender, deployer } = await loadFixture(
+      deployPaymentChannelFixture
+    );
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    const amount = 1000;
+    const signature = await createPaymentSignature(sender, channel, amount);
+
+    expect(
+      PaymentChannel.connect(deployer).close(amount, signature)
+    ).revertedWith("PaymentChannel: only receiver can close");
+  });
+
+  // it should not be able initialized twice
+  it("should not be able to initialize twice", async () => {
+    const { channel, sender, receiver, MockToken } = await loadFixture(
+      deployPaymentChannelFixture
+    );
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    expect(
+      PaymentChannel.initialize(
+        sender.address,
+        receiver.address,
+        (await time.latest()) + 1000,
+        MockToken.address,
+        0
+      )
+    ).to.be.revertedWith("PaymentChannel: already initialized");
   });
 });

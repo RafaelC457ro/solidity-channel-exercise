@@ -10,7 +10,6 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
     bool public initialized;
     address payable public sender;
     address public receiver;
-    uint256 public amount;
     uint256 public expiration;
     ERC1155 public token;
     uint256 public id;
@@ -24,7 +23,6 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
      * @dev Function initialize the payment channel using proxy Clones.
      * @param _sender Sender of the payment
      * @param _receiver Receiver of the payment
-     * @param _amount Amount of the payment
      * @param _expiration Expiration of the payment
      * @param _token ERC1155 token address
      * @param _id ERC1155 token id
@@ -32,7 +30,6 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
     function initialize(
         address payable _sender,
         address _receiver,
-        uint256 _amount,
         uint256 _expiration,
         ERC1155 _token,
         uint256 _id
@@ -41,7 +38,6 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
         initialized = true;
         sender = _sender;
         receiver = _receiver;
-        amount = _amount;
         expiration = _expiration;
         token = _token;
         id = _id;
@@ -54,7 +50,9 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
      */
     function close(uint256 _amount, bytes memory _signature) external {
         require(msg.sender == receiver, "PaymentChannel: only receiver can close");
+        require(block.timestamp < expiration, "PaymentChannel: payment is expired");
         require(_verify(_amount, _signature), "PaymentChannel: invalid signature");
+
         token.safeTransferFrom(address(this), receiver, id, _amount, "0x");
         // transfer the remaining balance to the sender
         token.safeTransferFrom(address(this), sender, id, token.balanceOf(address(this), id), "0x");
@@ -67,7 +65,6 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
      */
     function cancel() external {
         require(msg.sender == sender, "PaymentChannel: only sender can cancel");
-        // check if the payment is expired
         require(block.timestamp >= expiration, "PaymentChannel: payment is not expired");
         token.safeTransferFrom(address(this), sender, id, token.balanceOf(address(this), id), "0x");
         emit PaymentCanceled();
@@ -91,7 +88,7 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
         uint256[] calldata,
         bytes calldata
     ) external pure returns (bytes4) {
-        return IERC1155Receiver.onERC1155BatchReceived.selector;
+        return IERC1155Receiver.onERC1155BatchReceived.selector; /* ignore */
     }
 
     /**
