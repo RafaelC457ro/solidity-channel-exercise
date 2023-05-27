@@ -1,6 +1,4 @@
 node_modules
-# mac files
-.DS_Store
 .env
 coverage
 coverage.json
