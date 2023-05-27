@@ -296,4 +296,27 @@ describe("PaymentChannel", () => {
       )
     ).to.be.revertedWith("PaymentChannel: already initialized");
   });
+
+  // it should transfer the remaining balance to the sender
+  it("should transfer the remaining balance to the sender", async () => {
+    const { channel, sender, receiver, MockToken } = await loadFixture(
+      deployPaymentChannelFixture
+    );
+
+    const PaymentChannel: PaymentChannel = await ethers.getContractAt(
+      "PaymentChannel",
+      channel
+    );
+
+    const amount = 500;
+    const signature = await createPaymentSignature(sender, channel, amount);
+
+    await PaymentChannel.connect(receiver).close(amount, signature);
+
+    const senderBalanceAfter = await MockToken.balanceOf(sender.address, 0);
+    const receiverBalance = await MockToken.balanceOf(receiver.address, 0);
+
+    expect(senderBalanceAfter.toString()).to.equal("500");
+    expect(receiverBalance.toString()).to.equal("500");
+  });
 });

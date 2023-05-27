@@ -29,8 +29,11 @@ contract PaymentChannelFactory {
         ERC1155 _token,
         uint256 _id
     ) external returns (address paymentChannel) {
+        // check for zero address
+        require(_sender != address(0), "PaymentChannelFactory: sender is the zero address");
+        require(_receiver != address(0), "PaymentChannelFactory: receiver is the zero address");
         paymentChannel = Clones.clone(implementation);
-        PaymentChannel(paymentChannel).initialize(_sender, _receiver, _expiration, _token, _id);
         emit PaymentChannelCreated(paymentChannel);
+        PaymentChannel(paymentChannel).initialize(_sender, _receiver, _expiration, _token, _id);
     }
 }

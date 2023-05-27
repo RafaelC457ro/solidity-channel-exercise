@@ -17,7 +17,10 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
     event PaymentClosed(uint256 amount);
     event PaymentCanceled();
 
-    constructor() EIP712("PaymentChannel", "1.0.0") {}
+    constructor() EIP712("PaymentChannel", "1.0.0") {
+        // avoid to initialize de implementation contract and make it unusable
+        initialized = true;
+    }
 
     /**
      * @dev Function initialize the payment channel using proxy Clones.
@@ -52,11 +55,12 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
         require(msg.sender == receiver, "PaymentChannel: only receiver can close");
         require(block.timestamp < expiration, "PaymentChannel: payment is expired");
         require(_verify(_amount, _signature), "PaymentChannel: invalid signature");
+        emit PaymentClosed(_amount);
 
         token.safeTransferFrom(address(this), receiver, id, _amount, "0x");
         // transfer the remaining balance to the sender
         token.safeTransferFrom(address(this), sender, id, token.balanceOf(address(this), id), "0x");
-        emit PaymentClosed(_amount);
+
         selfdestruct(sender);
     }
 
@@ -66,8 +70,8 @@ contract PaymentChannel is EIP712, ERC1155Receiver {
     function cancel() external {
         require(msg.sender == sender, "PaymentChannel: only sender can cancel");
         require(block.timestamp >= expiration, "PaymentChannel: payment is not expired");
-        token.safeTransferFrom(address(this), sender, id, token.balanceOf(address(this), id), "0x");
         emit PaymentCanceled();
+        token.safeTransferFrom(address(this), sender, id, token.balanceOf(address(this), id), "0x");
         selfdestruct(sender);
     }
 
