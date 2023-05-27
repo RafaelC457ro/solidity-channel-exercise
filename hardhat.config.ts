@@ -61,16 +61,16 @@ const config: HardhatUserConfig = {
     noColors: true,
     currency: "USD",
     token: "MATIC",
-    //coinmarketcap: process.env.CAINMARKETCAP_KEY,
+    coinmarketcap: process.env.CAINMARKETCAP_KEY,
   },
   namedAccounts: {
     deployer: {
       default: 0,
     },
-    targetDeployer: {
+    sender: {
       default: 1,
     },
-    thirdDeployer: {
+    receiver: {
       default: 3,
     },
   },

@@ -1,5 +1,16 @@
 {
-  "name": "hardhat-project",
+  "name": "solidity-channel-exercise",
+  "license": "MIT",
+  "version": "1.0.0",
+  "description": "Solidity Channel Exercise",
+  "author": "Rafael Castro",
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "hardhat",
+    "smart-contracts",
+    "solidity"
+  ],
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13",
@@ -24,9 +35,16 @@
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
     "lint": "npx solhint 'contracts/**/*.sol'",
-    "lint-fix": "npx solhint -c ./.solhint.json 'contracts/**/*.sol' --fix"
+    "lint-fix": "npx solhint -c ./.solhint.json 'contracts/**/*.sol' --fix",
+    "postprepare": "npx hardhat compile"
   },
   "overrides": {
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13"
+  },
+  "comments": {
+    "overrides": "This is a workaround to fix the hardhat-ethers conflit with hardhat-deploy."
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.0"
   }
 }
