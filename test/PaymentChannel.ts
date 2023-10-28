@@ -238,7 +238,6 @@ describe("PaymentChannel", () => {
     );
   });
 
-  // only the sender can cancel the payment
   it("should not cancel the payment by a third party", async () => {
     const { channel, receiver, expiration } = await loadFixture(
       deployPaymentChannelFixture
@@ -256,7 +255,6 @@ describe("PaymentChannel", () => {
     );
   });
 
-  // only the receiver can close the payment
   it("should not close the payment by a third party", async () => {
     const { channel, sender, deployer } = await loadFixture(
       deployPaymentChannelFixture
@@ -275,7 +273,6 @@ describe("PaymentChannel", () => {
     ).revertedWith("PaymentChannel: only receiver can close");
   });
 
-  // it should not be able initialized twice
   it("should not be able to initialize twice", async () => {
     const { channel, sender, receiver, MockToken } = await loadFixture(
       deployPaymentChannelFixture
@@ -297,7 +294,6 @@ describe("PaymentChannel", () => {
     ).to.be.revertedWith("PaymentChannel: already initialized");
   });
 
-  // it should transfer the remaining balance to the sender
   it("should transfer the remaining balance to the sender", async () => {
     const { channel, sender, receiver, MockToken } = await loadFixture(
       deployPaymentChannelFixture
